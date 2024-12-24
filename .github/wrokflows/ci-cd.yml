@@ -1,0 +1,28 @@
+name: CI for Golang REST API
+
+on:
+  push:
+    branches:
+      - master  # Workflow akan berjalan ketika ada push ke branch 'master'
+  pull_request:
+    branches:
+      - master  # Workflow juga berjalan ketika ada pull request ke branch 'master'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # Menjalankan di mesin Ubuntu
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3  # Checkout kode dari repository
+
+      - name: Set up Go
+        uses: actions/setup-go@v4  # Setup Go environment
+        with:
+          go-version: '1.23'  # Versi Go yang digunakan
+
+      - name: Install dependencies
+        run: go mod tidy  # Menginstal dependensi
+
+      - name: Build application
+        run: go build -o app .  # Build aplikasi
