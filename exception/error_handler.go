@@ -15,7 +15,20 @@ func ErrorHandler(writer http.ResponseWriter, request *http.Request, err interfa
 	if notFoundError(writer, request, err) {
 		return
 	}
+
+	HandleNotFound(writer, request)
+
 	internalServerError(writer, request, err)
+}
+
+func HandleNotFound(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(http.StatusNotFound)
+	webResponse := web.ErrorResponse{
+		Code:  http.StatusNotFound,
+		Error: "end point is not valid",
+	}
+	helper.WriteResponseBody(writer, webResponse)
 }
 
 func validationError(writer http.ResponseWriter, request *http.Request, err interface{}) bool {

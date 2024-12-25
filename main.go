@@ -29,6 +29,9 @@ func main() {
 	router.PUT("/api/pelanggans/:pelangganId", pelangganController.Update)
 	router.DELETE("/api/pelanggans/:pelangganId", pelangganController.Delete)
 
+	router.NotFound = http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		exception.HandleNotFound(writer, request)
+	})
 	router.PanicHandler = exception.ErrorHandler
 	server := http.Server{
 		Addr:    "localhost:3000",
