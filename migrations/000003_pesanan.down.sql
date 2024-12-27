@@ -1,1 +1,1 @@
-DROP TABLE EXISTS IF pesanans;
+DROP TABLE IF EXISTS pesanans;

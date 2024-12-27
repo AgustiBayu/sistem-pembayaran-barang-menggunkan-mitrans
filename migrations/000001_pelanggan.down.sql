@@ -1,1 +1,1 @@
-DROP TABLE EXISTS IF pelanggans;
+DROP TABLE IF EXISTS pelanggans;

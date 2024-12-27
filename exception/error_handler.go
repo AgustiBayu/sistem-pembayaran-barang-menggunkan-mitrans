@@ -68,9 +68,19 @@ func internalServerError(writer http.ResponseWriter, request *http.Request, err 
 	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusInternalServerError)
 
+	var errorMessage string
+	switch e := err.(type) {
+	case string:
+		errorMessage = e
+	case error:
+		errorMessage = e.Error()
+	default:
+		errorMessage = "An unexpected error occurred"
+	}
+
 	webResponse := web.ErrorResponse{
 		Code:  http.StatusInternalServerError,
-		Error: err,
+		Error: errorMessage,
 	}
 	helper.WriteResponseBody(writer, webResponse)
 }
