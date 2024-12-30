@@ -16,7 +16,7 @@ func ErrorHandler(writer http.ResponseWriter, request *http.Request, err interfa
 		return
 	}
 
-	HandleNotFound(writer, request)
+	// HandleNotFound(writer, request)
 
 	internalServerError(writer, request, err)
 }
@@ -69,13 +69,17 @@ func internalServerError(writer http.ResponseWriter, request *http.Request, err 
 	writer.WriteHeader(http.StatusInternalServerError)
 
 	var errorMessage string
-	switch e := err.(type) {
-	case string:
-		errorMessage = e
-	case error:
-		errorMessage = e.Error()
-	default:
+	if err == nil {
 		errorMessage = "An unexpected error occurred"
+	} else {
+		switch e := err.(type) {
+		case string:
+			errorMessage = e
+		case error:
+			errorMessage = e.Error()
+		default:
+			errorMessage = "An unexpected error occurred"
+		}
 	}
 
 	webResponse := web.ErrorResponse{

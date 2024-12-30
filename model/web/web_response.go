@@ -19,3 +19,8 @@ type ErrorResponse struct {
 	Code  int         `json:"code"`
 	Error interface{} `json:"error"`
 }
+
+type MidtransResponse struct {
+	Code int         `json:"code"`
+	Data interface{} `json:"data"`
+}

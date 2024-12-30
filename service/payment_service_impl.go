@@ -3,6 +3,9 @@ package service
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"log"
+	"os"
 	"sistem-pembayaran-barang-menggunkan-mitrans/exception"
 	"sistem-pembayaran-barang-menggunkan-mitrans/helper"
 	"sistem-pembayaran-barang-menggunkan-mitrans/model/domain"
@@ -11,6 +14,9 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/joho/godotenv"
+	"github.com/midtrans/midtrans-go"
+	"github.com/midtrans/midtrans-go/snap"
 )
 
 type PaymentServiceImpl struct {
@@ -33,33 +39,79 @@ func NewPaymentService(
 	}
 }
 
-func (service *PaymentServiceImpl) Create(ctx context.Context, request web.PaymentCreateRequest) web.PaymentResponse {
+func (service *PaymentServiceImpl) Create(ctx context.Context, request web.PaymentCreateRequest) web.PaymentMidtrans {
+	// Validasi input
 	err := service.Validate.Struct(request)
 	helper.PanicIfError(err)
+
+	// Mulai transaksi database
 	tx, err := service.DB.Begin()
 	helper.PanicIfError(err)
 	defer helper.RollbackOrCommit(tx)
 
+	// Parsing tanggal pembayaran
 	PaymentDate, err := time.Parse("02-01-2006", request.PaymentDate)
 	helper.PanicIfError(err)
+
+	// Simpan data pembayaran
 	payment := domain.Payment{
 		PesananId:     request.PesananId,
-		PaymentMethod: domain.StatusPaymentMethod(request.PaymentMethod),
-		PaymentStatus: domain.StatusPayment(request.PaymentStatus),
+		PaymentMethod: "mitrans",
+		PaymentStatus: "pending",
 		PaymentAmount: request.PaymentAmount,
 		PaymentDate:   PaymentDate,
 	}
 	payment = service.PaymentRepository.Save(ctx, tx, payment)
 	pesanan, _, err := service.PesananRepository.FindById(ctx, tx, payment.PesananId)
-	if err != nil {
-		panic(exception.NewNotFoundError(err.Error()))
-	}
+	helper.PanicIfError(err)
 	pelanggan, err := service.PelangganRepository.FindById(ctx, tx, pesanan.PelangganId)
+	helper.PanicIfError(err)
+
+	err = godotenv.Load()
 	if err != nil {
-		panic(exception.NewNotFoundError(err.Error()))
+		log.Fatal("Error loading .env file")
 	}
-	return helper.ToPaymentResponse(payment, pesanan, pelanggan)
+	serverKey := os.Getenv("MIDTRANS_SERVER_KEY")
+	environment := os.Getenv("MIDTRANS_ENVIRONMENT")
+	if serverKey == "" {
+		log.Fatal("MIDTRANS_SERVER_KEY is not set in .env")
+	}
+	midtrans.ServerKey = serverKey
+	if environment == "production" {
+		midtrans.Environment = midtrans.Production
+	} else {
+		midtrans.Environment = midtrans.Sandbox
+	}
+	snapClient := snap.Client{}
+	snapClient.New(midtrans.ServerKey, midtrans.Sandbox)
+
+	// Buat permintaan Snap API
+	snapRequest := &snap.Request{
+		TransactionDetails: midtrans.TransactionDetails{
+			OrderID:  fmt.Sprintf("order-%d", payment.Id), // Pastikan Order ID unik
+			GrossAmt: int64(request.PaymentAmount),
+		},
+		CustomerDetail: &midtrans.CustomerDetails{
+			FName: pelanggan.Name,
+			Email: pelanggan.Email,
+			Phone: pelanggan.Phone,
+		},
+	}
+
+	// Kirim permintaan ke Midtrans
+	snapResponse, err := snapClient.CreateTransaction(snapRequest)
+	if err != nil {
+		fmt.Println("error snapResponse")
+	}
+
+	// Kembalikan response Midtrans
+	midtransResponse := web.PaymentMidtrans{
+		Token:       snapResponse.Token,
+		RedirectUrl: snapResponse.RedirectURL,
+	}
+	return midtransResponse
 }
+
 func (service *PaymentServiceImpl) FindAll(ctx context.Context) []web.PaymentResponse {
 	tx, err := service.DB.Begin()
 	helper.PanicIfError(err)

@@ -25,14 +25,13 @@ func (controller *PaymentControllerImpl) Create(writer http.ResponseWriter, requ
 	helper.ReadResponseBody(request, &paymentCreateRequest)
 
 	paymentResponse := controller.PaymentService.Create(request.Context(), paymentCreateRequest)
-	links := helper.CreateLinksForItem(paymentResponse.Id, "payments")
-	webResponse := web.DataResponse{
-		Code:  http.StatusCreated,
-		Data:  paymentResponse,
-		Links: links,
+	webResponse := web.MidtransResponse{
+		Code: http.StatusOK,
+		Data: paymentResponse,
 	}
 	helper.WriteResponseBody(writer, webResponse)
 }
+
 func (controller *PaymentControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	paymentResponse := controller.PaymentService.FindAll(request.Context())
 	var ids []int
