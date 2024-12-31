@@ -40,6 +40,7 @@ Sistem Pembayaran Barang Menggunakan Midtrans adalah sebuah solusi pembayaran on
 5. Jalankan Perintah
    ```bash
    migrate -database "postgres://postgres:password!!@localhost:5432/db_name?sslmode=disable" -path migrations up
-6. Jalankan aplikasi:
+6. rename file .env.example ke .env   
+7. Jalankan aplikasi:
     ```bash
     go run main.go
